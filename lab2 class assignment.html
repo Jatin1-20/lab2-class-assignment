@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cat Information</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        button {
+            margin-bottom: 10px;
+        }
+
+        label {
+            margin-right: 10px;
+        }
+
+        input {
+            margin-right: 5px;
+        }
+
+        #MyId {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div>
+        <h1>Cat Information</h1>
+
+        <!-- Buttons for different actions -->
+        <button onclick="fetchCatNames()">All Names</button><br>
+
+        <label for="healthInput">Health Issue:</label>
+        <input type="text" id="healthInput" placeholder="Enter Health Issue">
+        <button onclick="fetchCatsByHealthIssue()">Search by Health Issue</button><br>
+
+        <label>
+            <input type="radio" name="unit" value="imperial" checked> Imperial
+        </label>
+        <label>
+            <input type="radio" name="unit" value="metric"> Metric
+        </label>
+        <button onclick="fetchWeight()">Weight</button><br>
+
+        <button onclick="fetchIntelligence('all')">Intelligence Friendly</button><br>
+        <button onclick="fetchAverageIntelligence()">Average Intelligence</button><br>
+        <button onclick="fetchIntelligence('childFriendly', 4)">Avg Intelligence for Child Friendly = 4</button>
+    </div>
+
+    <div>
+        <div id="MyId"></div>
+        <p id="CatCount"></p>
+    </div>
+
+    <script>
+        function updateCatCount(count) {
+            document.getElementById("CatCount").innerHTML = "Number of Cats: " + count;
+        }
+        async function fetchData(url) {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching JSON:', error);
+            }
+        }
+
+        function displayData(data, formatFunction) {
+            const MyId = document.getElementById("MyId");
+            MyId.innerHTML = '';
+            data.forEach(item => {
+                const formattedData = formatFunction(item);
+                MyId.appendChild(document.createElement('p')).innerHTML = formattedData;
+            });
+        }
+
+        function fetchCatNames() {
+            fetchDataAndDisplay("https://api.thecatapi.com/v1/breeds", data => {
+                displayData(data, item => item.name);
+                updateCatCount(data.length);
+            });
+        }
+
+        function fetchIntelligence(type, value) {
+            const unit = document.querySelector('input[name="unit"]:checked').value;
+            fetchDataAndDisplay("https://api.thecatapi.com/v1/breeds", data => {
+                let filteredData;
+                if (type === 'all') {
+                    filteredData = data;
+                } else if (type === 'childFriendly') {
+                    filteredData = data.filter(item => item.child_friendly === value);
+                }
+                displayData(filteredData, item => `Name: ${item.name}, I: ${item.intelligence}, F: ${item.child_friendly}`);
+            });
+        }
+
+        function fetchAverageIntelligence() {
+            fetchDataAndDisplay("https://api.thecatapi.com/v1/breeds", data => {
+                const totalIntelligence = data.reduce((total, item) => total + item.intelligence, 0);
+                const averageIntelligence = totalIntelligence / data.length;
+                document.getElementById("MyId").innerHTML = "Average Intelligence of all cats: " + averageIntelligence.toFixed(2);
+            });
+        }
+
+        function fetchCatsByHealthIssue() {
+            const healthInput = document.getElementById("healthInput").value;
+            if (!healthInput || isNaN(healthInput)) {
+                alert("Please enter a valid number for Health Issue.");
+                return;
+            }
+            fetchDataAndDisplay("https://api.thecatapi.com/v1/breeds", data => {
+                const filteredData = data.filter(item => item.health_issues === parseInt(healthInput, 10));
+                displayData(filteredData, item => item.name);
+                updateCatCount(filteredData.length);
+            });
+        }
+
+        function fetchWeight() {
+            const unit = document.querySelector('input[name="unit"]:checked').value;
+            fetchDataAndDisplay("https://api.thecatapi.com/v1/breeds", data => {
+                displayData(data, item => `Name: ${item.name}, Weight Range: ${unit === 'metric' ? item.weight.metric : item.weight.imperial}`);
+            });
+        }
+
+        function fetchDataAndDisplay(url, callback) {
+            fetchData(url).then(data => callback(data));
+        }
+
+        
+    </script>
+</body>
+
+</html>
